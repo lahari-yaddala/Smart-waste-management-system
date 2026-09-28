@@ -1,0 +1,83 @@
+
+#include <Servo.h>
+
+#define TRIG_PIN 9
+#define ECHO_PIN 10
+#define MOISTURE_PIN A0
+#define SERVO_PIN 11
+
+const int detectionDistance = 10;
+const int moistureThreshold = 600;
+
+const int wetPosition = 0;
+const int dryPosition = 180;
+const int centerPosition = 90;
+
+Servo wasteServo;
+
+long duration;
+float distance;
+int moistureValue;
+
+void setup() {
+  Serial.begin(9600);
+
+  pinMode(TRIG_PIN, OUTPUT);
+  pinMode(ECHO_PIN, INPUT);
+  pinMode(MOISTURE_PIN, INPUT);
+
+  wasteServo.attach(SERVO_PIN);
+  wasteServo.write(centerPosition);
+
+  Serial.println("Smart Waste Management System");
+}
+
+void loop() {
+  digitalWrite(TRIG_PIN, LOW);
+  delayMicroseconds(2);
+
+  digitalWrite(TRIG_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIG_PIN, LOW);
+
+  duration = pulseIn(ECHO_PIN, HIGH, 30000);
+
+  if (duration == 0) {
+    Serial.println("No ultrasonic echo received");
+    delay(500);
+    return;
+  }
+
+  distance = duration * 0.0343 / 2.0;
+
+  Serial.print("Distance: ");
+  Serial.print(distance);
+  Serial.println(" cm");
+
+  if (distance > 0 && distance < detectionDistance) {
+    delay(500);
+
+    moistureValue = analogRead(MOISTURE_PIN);
+
+    Serial.print("Moisture Value: ");
+    Serial.println(moistureValue);
+
+    // Assumes lower readings indicate wetter waste.
+    // Verify this behavior for your moisture sensor.
+
+    if (moistureValue < moistureThreshold) {
+      Serial.println("Wet Waste Detected");
+      wasteServo.write(wetPosition);
+    } else {
+      Serial.println("Dry Waste Detected");
+      wasteServo.write(dryPosition);
+    }
+
+    delay(2000);
+
+    wasteServo.write(centerPosition);
+    delay(1500);
+  }
+
+  delay(500);
+}
